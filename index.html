@@ -1,1 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#06060F"/>
+<title>DROPWISE AI</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#06060F;font-family:system-ui,-apple-system,sans-serif;color:#F0EFF8;min-height:100vh}
+input,select,textarea,button{font-family:inherit}
+input[type=range]{-webkit-appearance:none;height:5px;border-radius:99px;outline:none;background:#333}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+select option{background:#0D0B1F;color:#F0EFF8}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.up{animation:up .4s ease forwards}
+.spin{animation:spin .9s linear infinite}
+.blink{animation:blink 1.5s infinite}
+.gbg{position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:44px 44px}
+.glw{position:fixed;top:-10%;left:50%;transform:translateX(-50%);width:600px;height:300px;pointer-events:none;z-index:0;background:radial-gradient(ellipse,rgba(124,58,237,.18) 0%,transparent 70%)}
+.scr{position:relative;z-index:1;max-width:500px;margin:0 auto;padding:20px;padding-bottom:60px}
+.card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px;margin-bottom:12px}
+.carda{background:rgba(120,60,255,.08);border-color:rgba(120,60,255,.38)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 20px;border-radius:14px;border:none;cursor:pointer;font-weight:700;font-size:14px;color:#fff;width:100%;background:linear-gradient(135deg,#9D5CFF,#7C3AED,#5B21B6);transition:opacity .2s}
+.btn:disabled{background:rgba(255,255,255,.07);color:#444;cursor:not-allowed}
+.lbl{font-size:10px;font-weight:700;color:#3E3D52;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.inp{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:13px;font-size:14px;font-weight:600;color:#F0EFF8}
+.inp:focus{outline:none;border-color:rgba(167,139,250,.5)}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;background:linear-gradient(135deg,#9D5CFF,#7C3AED);color:#fff;padding:12px 20px;border-radius:14px;font-size:13px;font-weight:700;box-shadow:0 8px 32px rgba(124,58,237,.5);max-width:300px;text-align:center;display:none}
+</style>
+</head>
+<body>
+<div class="gbg"></div>
+<div class="glw"></div>
+<div class="toast" id="toast"></div>
+<div id="app"><div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px"><div style="width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,#9D5CFF,#7C3AED,#06B6D4);display:flex;align-items:center;justify-content:center;font-size:40px;box-shadow:0 0 40px rgba(124,58,237,.6)">⚡</div><div style="font-size:22px;font-weight:900;letter-spacing:2px">DROPWISE AI</div><div style="font-size:12px;color:#A78BFA">Carregando...</div></div></div>
+<script>
+var TX={eletronicos:[.13,.17,.13,.16,.16],informatica:[.13,.17,.13,.16,.16],eletrodomesticos:[.11,.15,.11,.14,.14],moda:[.14,.18,.15,.18,.19],beleza:[.14,.18,.13,.17,.17],casa:[.13,.16,.12,.16,.16],brinquedos:[.11,.15,.13,.16,.16],esportes:[.13,.16,.11,.15,.15],ferramentas:[.13,.16,.11,.15,.15],pets:[.14,.17,.13,.16,.15],games:[.13,.17,.13,.16,.16],livros:[.11,.15,.10,.14,.14],alimentos:[.14,.18,.13,.16,.15]};
+var CATS=[{id:"eletronicos",l:"📱 Eletrônicos"},{id:"informatica",l:"💻 Informática"},{id:"eletrodomesticos",l:"🏠 Eletrodomésticos"},{id:"moda",l:"👗 Moda"},{id:"beleza",l:"💄 Beleza/Saúde"},{id:"casa",l:"🛋️ Casa/Decoração"},{id:"brinquedos",l:"🧸 Brinquedos"},{id:"esportes",l:"⚽ Esportes"},{id:"ferramentas",l:"🔧 Ferramentas"},{id:"pets",l:"🐾 Pets"},{id:"games",l:"🎮 Games"},{id:"livros",l:"📚 Livros"},{id:"alimentos",l:"🍎 Alimentos"}];
+var ESTS=[{id:"rapido",l:"⚡ Vender Rápido",d:"Abaixo do mercado",m:.88,c:"#22D3A8"},{id:"competitivo",l:"🎯 Competitivo",d:"Na média",m:1,c:"#A78BFA"},{id:"padrao",l:"💰 Preço Padrão",d:"Margem garantida",m:null,c:"#06B6D4"},{id:"premium",l:"👑 Preço Premium",d:"Acima do mercado",m:1.15,c:"#FACC15"}];
+var MPI=[{key:"mlc",n:"ML Clássico",i:"🛒",c:"#FFE600",t:"ml",r:0},{key:"mlp",n:"ML Premium",i:"⭐",c:"#F5C842",t:"ml",r:1},{key:"sh",n:"Shopee",i:"🧡",c:"#EE4D2D",t:"sh"},{key:"amz",n:"Amazon",i:"📦",c:"#FF9900",t:"gn",r:2},{key:"mag",n:"Magalu",i:"💙",c:"#0063CB",t:"gn",r:3},{key:"ame",n:"Americanas",i:"🔴",c:"#E60014",t:"gn",r:4}];
 
+function brl(v){if(v==null||isNaN(v))return"—";return new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v);}
+function mlCF(p){return p<29?5.5:p<55?6.5:p<109?8:p<199?10:0;}
+function shF(p){return p<8?p*.5:p<80?p*.2+4:p<100?p*.14+16:p<200?p*.14+20:p*.14+26;}
+function mkP(c,f,t){if(t>=.999)return null;return(c+f)/(1-t);}
+function cML(c,f,r,mg){var P=mkP(c,f,r+.0299+mg);if(!P)return null;for(var i=0;i<15;i++){var Pn=(c+f+mlCF(P))/(1-r-.0299-mg);if(Math.abs(Pn-P)<.001){P=Pn;break;}P=Pn;}return P>0?P:null;}
+function cSh(c,f,mg){var P=(c+f)*2.5;for(var i=0;i<80;i++){var Pn=c+f+shF(P)+P*mg;if(Math.abs(Pn-P)<.001){P=Pn;break;}P=Pn;}return P>0?P:null;}
+function fee(mp,pv,tx){if(mp.t==="ml")return pv*tx[mp.r]+mlCF(pv)+pv*.0299;if(mp.t==="sh")return shF(pv);return pv*tx[mp.r];}
+function calcAll(c,f,mg,tx){
+  var r=[{key:"mlc",P:cML(c,f,tx[0],mg)},{key:"mlp",P:cML(c,f,tx[1],mg)},{key:"sh",P:cSh(c,f,mg)},{key:"amz",P:mkP(c,f,tx[2]+mg)},{key:"mag",P:mkP(c,f,tx[3]+mg)},{key:"ame",P:mkP(c,f,tx[4]+mg)}];
+  return r.filter(function(m){return m.P&&m.P>0;}).sort(function(a,b){return a.P-b.P;});
+}
+function estimarMercado(cat,custo){
+  var mult={eletronicos:2.8,informatica:2.5,eletrodomesticos:2.2,moda:3.5,beleza:3.2,casa:2.8,brinquedos:3.0,esportes:2.7,ferramentas:2.4,pets:3.0,games:2.3,livros:2.5,alimentos:2.2};
+  var med=Math.round(custo*(mult[cat]||2.5));
+  var dicas={eletronicos:"Inclua número ANATEL e destaque garantia. Kits aumentam ticket médio.",moda:"Fotos com modelos e tabela de medidas reduzem devoluções.",beleza:"Destaque ingredientes e benefícios. Avaliações são cruciais.",informatica:"Especificações técnicas detalhadas aumentam conversão.",eletrodomesticos:"Destaque voltagem e garantia. Assistência técnica é diferencial.",casa:"Fotos em ambiente decorado aumentam conversão.",brinquedos:"Certificação INMETRO obrigatória. Defina faixa etária.",esportes:"Destaque compatibilidade e materiais. Vídeos ajudam.",ferramentas:"Especificações e compatibilidade são essenciais.",pets:"Especifique porte do animal. Fotos reais convencem.",games:"Compatibilidade e versão são cruciais. Lacrado tem valor.",livros:"Edição e estado de conservação bem descritos.",alimentos:"Validade e certificações são obrigatórias."};
+  return{preco_medio:med,faixa_min:Math.round(med*.75),faixa_max:Math.round(med*1.35),melhor_mp:["eletronicos","games","informatica"].includes(cat)?"Mercado Livre":["moda","beleza"].includes(cat)?"Shopee":"Mercado Livre",motivo:"Maior volume de buscas para esta categoria no Brasil.",concorrencia:custo<30?"Alta":custo<80?"Média":"Baixa",dica:dicas[cat]||"Invista em fotos profissionais e descrição detalhada.",viabilidade:custo<20?"Regular":custo<50?"Boa":"Excelente",_est:true};
+}
+
+var DB={
+  load:function(){try{return JSON.parse(localStorage.getItem("dw2_users")||"[]");}catch(e){return[];}},
+  save:function(u){localStorage.setItem("dw2_users",JSON.stringify(u));},
+  find:function(e){return this.load().find(function(u){return u.email===e.toLowerCase();});},
+  create:function(name,email,pass){var u={id:Date.now()+"",name:name,email:email.toLowerCase(),password:pass,role:"user",plan:"free",trialEnd:new Date(Date.now()+3*864e5).toISOString()};var us=this.load();us.push(u);this.save(us);return u;},
+};
+var hist=[];try{hist=JSON.parse(localStorage.getItem("dw2_hist")||"[]");}catch(e){}
+function sHist(e){hist=[e].concat(hist).slice(0,50);localStorage.setItem("dw2_hist",JSON.stringify(hist));}
+
+var S={view:"loading",scr:"home",user:null,tab:"login",nome:"",custo:"",cat:"eletronicos",margem:30,freteOn:false,freteV:"18",results:null,pesquisa:null,est:"padrao",msgs:[{r:"a",t:"Olá! 👋 Sou o assistente do DROPWISE AI.\n\nAjudo com estratégias de precificação, taxas e dicas de dropshipping.\n\nO que quer saber?"}],chatIn:"",ldCalc:false,ldImg:false,ldAuth:false,ldChat:false,imgMsg:"",calcErr:"",authErr:"",authName:"",authEmail:"",authPass:"",obIdx:0,openFaq:null,adminSrch:""};
+
+function toast(msg){var t=document.getElementById("toast");t.textContent=msg;t.style.display="block";setTimeout(function(){t.style.display="none";},3000);}
+function ss(d){Object.assign(S,d);render();}
+
+var OB=[
+  {tag:"BEM-VINDO",ico:"⚡",t:"Precificação inteligente com IA",d:"Calcule o preço ideal em 6 marketplaces em menos de 30 segundos.",it:null},
+  {tag:"PASSO 1",ico:"📸",t:"Foto do produto ou print",d:"Nossa IA identifica nome, categoria e preço automaticamente.",it:["📦 Produto identificado","🏷️ Categoria: Eletrônicos","💵 Preço: R$ 89,90"]},
+  {tag:"PASSO 2",ico:"🎯",t:"Escolha sua estratégia",d:"Vender rápido, ser competitivo ou maximizar lucro?",it:["⚡ Vender Rápido — abaixo do mercado","🎯 Competitivo — na média do mercado","👑 Premium — acima do mercado"]},
+  {tag:"PASSO 3",ico:"💰",t:"Preço ideal por marketplace",d:"6 marketplaces calculados com taxas reais auditadas.",it:["🛒 ML Clássico: R$ 128,40","🧡 Shopee: R$ 124,80","📦 Amazon: R$ 110,53"]},
+  {tag:"PRONTO",ico:"🚀",t:"Você está pronto!",d:"3 dias de acesso gratuito. Sem cartão de crédito.",it:["✅ 3 dias grátis","✅ 6 marketplaces","✅ 4 estratégias de preço","✅ Análise de mercado inteligente"]},
+];
+
+function render(){
+  var app=document.getElementById("app");
+  if(!app)return;
+  if(S.view==="loading"){renderLoading();return;}
+  if(S.view==="onboarding"){renderOB();return;}
+  if(S.view==="auth"){renderAuth();return;}
+  if(S.view==="admin"){renderAdmin();return;}
+  if(S.view==="plans"){renderPlans();return;}
+  if(S.view==="app"){
+    if(S.scr==="home")renderHome();
+    else if(S.scr==="config")renderConfig();
+    else if(S.scr==="results")renderResults();
+    else if(S.scr==="chat"){renderChat();setTimeout(scrollChat,100);}
+    else if(S.scr==="help")renderHelp();
+    else if(S.scr==="history")renderHistory();
+  }
+}
+
+function renderLoading(){
+  document.getElementById("app").innerHTML='<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px" class="up"><div style="width:88px;height:88px;border-radius:26px;background:linear-gradient(135deg,#9D5CFF,#7C3AED,#06B6D4);display:flex;align-items:center;justify-content:center;font-size:46px;box-shadow:0 0 50px rgba(124,58,237,.6)">⚡</div><div style="font-size:28px;font-weight:900;letter-spacing:2px">DROPWISE AI</div><div style="font-size:12px;color:#A78BFA">Precificação inteligente para vendedores online</div><div style="font-size:11px;color:#3E3D52;margin-top:8px">Powered by Claude AI</div></div>';
+}
+
+function renderOB(){
+  var s=OB[S.obIdx];
+  var pr="";for(var i=0;i<OB.length;i++)pr+='<div style="flex:1;height:3px;border-radius:99px;background:'+(i<=S.obIdx?"#A78BFA":"rgba(255,255,255,.1)")+';transition:all .4s"></div>';
+  var it="";if(s.it)s.it.forEach(function(d){it+='<div style="font-size:13px;font-weight:600">'+d+'</div>';});
+  document.getElementById("app").innerHTML='<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px"><div style="max-width:440px;width:100%"><div style="display:flex;gap:6px;margin-bottom:28px">'+pr+'</div><div class="up" style="text-align:center;margin-bottom:24px"><div style="display:inline-block;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:99px;padding:4px 12px;font-size:10px;font-weight:700;color:#A78BFA;margin-bottom:18px">'+s.tag+'</div><div style="width:96px;height:96px;border-radius:28px;background:linear-gradient(135deg,#9D5CFF,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:50px;margin:0 auto 18px;box-shadow:0 0 40px rgba(124,58,237,.5)">'+s.ico+'</div><h2 style="font-size:24px;font-weight:900;line-height:1.3;margin-bottom:10px">'+s.t+'</h2><p style="color:#8B8A9E;line-height:1.7;font-size:14px;margin-bottom:18px">'+s.d+'</p>'+(s.it?'<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;text-align:left;display:flex;flex-direction:column;gap:8px">'+it+'</div>':"")+' </div><button class="btn" onclick="'+(S.obIdx<OB.length-1?"ss({obIdx:"+(S.obIdx+1)+"})":"skipOB()")+'">'+( S.obIdx<OB.length-1?"Próximo →":"🚀 Começar agora")+'</button>'+(S.obIdx<OB.length-1?'<button style="width:100%;background:none;border:none;color:#3E3D52;margin-top:14px;cursor:pointer;font-size:13px" onclick="skipOB()">Pular tutorial</button>':"")+' </div></div>';
+}
+function skipOB(){localStorage.setItem("dw2_ob","1");ss({view:"auth"});}
+
+function renderAuth(){
+  document.getElementById("app").innerHTML='<div class="scr up" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh"><div style="max-width:420px;width:100%"><div style="text-align:center;margin-bottom:24px"><div style="width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,#9D5CFF,#7C3AED,#06B6D4);display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 12px;box-shadow:0 0 40px rgba(124,58,237,.6)">⚡</div><div style="font-size:22px;font-weight:900;letter-spacing:2px">DROPWISE AI</div><div style="font-size:11px;color:#A78BFA;margin-top:3px">Precificação inteligente para vendedores online</div></div><div style="display:flex;background:rgba(255,255,255,.04);border-radius:12px;padding:4px;margin-bottom:16px;gap:4px"><button style="flex:1;padding:10px;border-radius:9px;border:none;cursor:pointer;font-weight:700;font-size:13px;background:'+(S.tab==="login"?"rgba(120,60,255,.5)":"transparent")+';color:'+(S.tab==="login"?"#E2D9FF":"#555")+'" onclick="ss({tab:\'login\',authErr:\'\'})">Entrar</button><button style="flex:1;padding:10px;border-radius:9px;border:none;cursor:pointer;font-weight:700;font-size:13px;background:'+(S.tab==="register"?"rgba(120,60,255,.5)":"transparent")+';color:'+(S.tab==="register"?"#E2D9FF":"#555")+'" onclick="ss({tab:\'register\',authErr:\'\'})">Criar conta</button></div><div class="card">'+(S.tab==="register"?'<div class="lbl">Seu nome</div><input class="inp" style="margin-bottom:12px" placeholder="Ex: João Silva" value="'+S.authName+'" oninput="S.authName=this.value">':"")+' <div class="lbl">E-mail</div><input class="inp" style="margin-bottom:12px" type="email" placeholder="seu@email.com" value="'+S.authEmail+'" oninput="S.authEmail=this.value"><div class="lbl">Senha</div><input class="inp" style="margin-bottom:12px" type="password" placeholder="'+(S.tab==="register"?"Mínimo 8 caracteres":"Sua senha")+'" value="'+S.authPass+'" oninput="S.authPass=this.value">'+(S.authErr?'<div style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:10px;padding:10px;color:#FCA5A5;font-size:13px;margin-bottom:12px">⚠️ '+S.authErr+'</div>':"")+' <button class="btn" onclick="doAuth()" '+(S.ldAuth?"disabled":"")+">"+( S.ldAuth?"Aguarde...":(S.tab==="login"?"Entrar →":"🚀 Criar conta grátis"))+"</button></div>"+(S.tab==="register"?'<p style="text-align:center;font-size:12px;color:#06B6D4;margin-top:8px">✨ 3 dias de trial grátis · Sem cartão</p>':"")+' <p style="text-align:center;font-size:11px;color:#3E3D52;margin-top:10px">Admin: admin@dropwise.ai / admin123</p></div></div>';
+}
+function doAuth(){
+  var e=(S.authEmail||"").trim(),p=S.authPass||"",n=(S.authName||"").trim();
+  ss({authErr:"",ldAuth:true});
+  setTimeout(function(){
+    if(S.tab==="register"){
+      if(!n||!e||!p){ss({authErr:"Preencha todos os campos.",ldAuth:false});return;}
+      if(p.length<8){ss({authErr:"Senha mínimo 8 caracteres.",ldAuth:false});return;}
+      if(DB.find(e)){ss({authErr:"E-mail já cadastrado.",ldAuth:false});return;}
+      var u=DB.create(n,e,p);toast("Conta criada! Trial de 3 dias ativado ✨");
+      ss({user:u,view:"app",scr:"home",ldAuth:false});
+    }else{
+      if(!e||!p){ss({authErr:"Preencha e-mail e senha.",ldAuth:false});return;}
+      if(e==="admin@dropwise.ai"&&p==="admin123"){toast("Bem-vindo, Admin! 👑");ss({user:{id:"admin",name:"Administrador",email:"admin@dropwise.ai",role:"admin",plan:"enterprise"},view:"admin",ldAuth:false});return;}
+      var u2=DB.find(e);
+      if(!u2||u2.password!==p){ss({authErr:"E-mail ou senha incorretos.",ldAuth:false});return;}
+      toast("Bem-vindo de volta! 👋");ss({user:u2,view:"app",scr:"home",ldAuth:false});
+    }
+  },600);
+}
+
+function renderAdmin(){
+  var us=DB.load(),srch=(S.adminSrch||"").toLowerCase();
+  var fl=us.filter(function(u){return u.email.includes(srch)||u.name.toLowerCase().includes(srch);});
+  var rows=fl.length===0?'<p style="color:#3E3D52;text-align:center;padding:20px">Nenhum usuário.</p>':fl.map(function(u){
+    var tok=new Date(u.trialEnd||0)>new Date();
+    return'<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.07);gap:8px;flex-wrap:wrap"><div><div style="font-weight:700;font-size:13px">'+u.name+'</div><div style="font-size:11px;color:#3E3D52">'+u.email+' · '+u.plan+'</div><div style="font-size:10px;color:'+(tok?"#06B6D4":"#3E3D52")+';margin-top:2px">Trial: '+(tok?"Ativo":"Expirado")+(u.blocked?" · 🔴 BLOQUEADO":"")+'</div></div><div style="display:flex;gap:6px">'+(u.plan!=="pro"?'<button style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 11px;color:#fff;font-size:11px;font-weight:700;cursor:pointer" onclick="aGPro(\''+u.id+'\')">⭐ PRO</button>':"")+(!u.blocked?'<button style="background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.3);border-radius:10px;padding:7px 11px;color:#FCA5A5;font-size:11px;font-weight:700;cursor:pointer" onclick="aBlk(\''+u.id+'\')">🔴 Bloquear</button>':"")+'</div></div>';
+  }).join("");
+  document.getElementById("app").innerHTML='<div class="scr up"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><div><div style="display:inline-block;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:99px;padding:4px 12px;font-size:10px;font-weight:700;color:#A78BFA;margin-bottom:6px">👑 ADMIN</div><h1 style="font-size:20px;font-weight:900">DROPWISE AI — Painel</h1></div><button style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:9px 14px;color:#fff;font-size:13px;font-weight:600;cursor:pointer" onclick="logout()">← Sair</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px"><div class="card"><div style="font-size:20px;margin-bottom:5px">👥</div><div style="font-size:20px;font-weight:900;color:#A78BFA">'+us.length+'</div><div style="font-size:10px;color:#3E3D52">Total</div></div><div class="card"><div style="font-size:20px;margin-bottom:5px">⏰</div><div style="font-size:20px;font-weight:900;color:#06B6D4">'+us.filter(function(u){return new Date(u.trialEnd||0)>new Date();}).length+'</div><div style="font-size:10px;color:#3E3D52">Trial</div></div><div class="card"><div style="font-size:20px;margin-bottom:5px">⭐</div><div style="font-size:20px;font-weight:900;color:#22D3A8">'+us

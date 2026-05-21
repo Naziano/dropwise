@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#06060F"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>DROPWISE AI</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#06060F;font-family:system-ui,-apple-system,sans-serif;color:#F0EFF8;min-height:100vh}
+input,select,textarea,button{font-family:inherit}
+input[type=range]{-webkit-appearance:none;height:5px;border-radius:99px;outline:none;cursor:pointer;background:#333}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
+select option{background:#0D0B1F;color:#F0EFF8}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.up{animation:up 0.4s ease forwards}
+.spin{animation:spin 0.9s linear infinite}
+.blink{animation:blink 1.5s infinite}
+.grid-bg{position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);
+  background-size:44px 44px}
+.glow-bg{position:fixed;top:-10%;left:50%;transform:translateX(-50%);width:600px;height:300px;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse,rgba(124,58,237,0.18) 0%,transparent 70%)}
+.screen{position:relative;z-index:1;max-width:500px;margin:0 auto;padding:20px;padding-bottom:50px;min-height:100vh}
+.card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:18px;margin-bottom:12px}
+.card-accent{background:rgba(120,60,255,0.08);border-color:rgba(120,60,255,0.38)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 20px;border-radius:14px;border:none;cursor:pointer;font-weight:700;font-size:14px;color:#fff;width:100%;background:linear-gradient(135deg,#9D5CFF,#7C3AED,#5B21B6);margin-top:6px;transition:opacity .2s}
+.btn:disabled{background:rgba(255,255,255,0.07);color:#444;cursor:not-allowed}
+.btn-sec{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);width:auto}
+.label{font-size:10px;font-weight:700;color:#3E3D52;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.input{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:13px;font-size:14px;font-weight:600;color:#F0EFF8}
+.input:focus{outline:none;border-color:rgba(167,139,250,0.5)}
+.spinner{width:20px;height:20px;border-radius:50%;border:2.5px solid rgba(167,139,250,0.2);border-top-color:#A78BFA}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;background:linear-gradient(135deg,#9D5CFF,#7C3AED);color:#fff;padding:12px 20px;border-radius:14px;font-size:13px;font-weight:700;box-shadow:0 8px 32px rgba(124,58,237,0.5);max-width:300px;text-align:center;display:none}
+.tag-row{display:flex;gap:7px;align-items:center;margin-top:5px;flex-wrap:wrap}
+.tag{background:rgba(120,60,255,0.15);border:1px solid rgba(120,60,255,0.3);border-radius:99px;padding:3px 10px;font-size:10px;font-weight:700;color:#A78BFA}
+.tag-cyan{background:rgba(6,182,212,0.12);border-color:rgba(6,182,212,0.3);color:#06B6D4}
+.row{display:flex;align-items:center;gap:8px}
+.dot{width:7px;height:7px;border-radius:50%;background:#22D3A8;box-shadow:0 0 6px #22D3A8}
+.dot-cyan{background:#06B6D4;box-shadow:0 0 6px #06B6D4}
+/* Câmera / Galeria */
+.img-btn-label{display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 10px;border-radius:14px;cursor:pointer;text-align:center;border:2px solid}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="glow-bg"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DADOS ──────────────────────────────────────────────────────────────────
+var TAXES={eletronicos:[0.13,0.17,0.13,0.16,0.16],informatica:[0.13,0.17,0.13,0.16,0.16],eletrodomesticos:[0.11,0.15,0.11,0.14,0.14],moda:[0.14,0.18,0.15,0.18,0.19],beleza:[0.14,0.18,0.13,0.17,0.17],casa:[0.13,0.16,0.12,0.16,0.16],brinquedos:[0.11,0.15,0.13,0.16,0.16],esportes:[0.13,0.16,0.11,0.15,0.15],ferramentas:[0.13,0.16,0.11,0.15,0.15],pets:[0.14,0.17,0.13,0.16,0.15],games:[0.13,0.17,0.13,0.16,0.16],livros:[0.11,0.15,0.10,0.14,0.14],alimentos:[0.14,0.18,0.13,0.16,0.15]};
+var CATS=[{id:"eletronicos",l:"📱 Eletrônicos / Celulares"},{id:"informatica",l:"💻 Informática / Periféricos"},{id:"eletrodomesticos",l:"🏠 Eletrodomésticos"},{id:"moda",l:"👗 Moda / Roupas"},{id:"beleza",l:"💄 Beleza / Saúde"},{id:"casa",l:"🛋️ Casa / Decoração"},{id:"brinquedos",l:"🧸 Brinquedos / Bebês"},{id:"esportes",l:"⚽ Esportes / Fitness"},{id:"ferramentas",l:"🔧 Ferramentas"},{id:"pets",l:"🐾 Pets / Animais"},{id:"games",l:"🎮 Games / Consoles"},{id:"livros",l:"📚 Livros / Papelaria"},{id:"alimentos",l:"🍎 Alimentos"}];
+var ESTS=[{id:"rapido",l:"⚡ Vender Rápido",d:"Abaixo do mercado · Gira estoque",m:0.88,c:"#22D3A8"},{id:"competitivo",l:"🎯 Competitivo",d:"Na média · Equilibrado",m:1.00,c:"#A78BFA"},{id:"padrao",l:"💰 Preço Padrão",d:"Margem garantida · Calculado",m:null,c:"#06B6D4"},{id:"premium",l:"👑 Preço Premium",d:"Acima do mercado · Mais lucro",m:1.15,c:"#FACC15"}];
+var MPS_INFO=[{key:"mlc",n:"ML Clássico",i:"🛒",c:"#FFE600",t:"ml",r:0},{key:"mlp",n:"ML Premium",i:"⭐",c:"#F5C842",t:"ml",r:1},{key:"sh",n:"Shopee",i:"🧡",c:"#EE4D2D",t:"sh",r:0},{key:"amz",n:"Amazon",i:"📦",c:"#FF9900",t:"gn",r:2},{key:"mag",n:"Magalu",i:"💙",c:"#0063CB",t:"gn",r:3},{key:"ame",n:"Americanas",i:"🔴",c:"#E60014",t:"gn",r:4}];
+
+// ── CALC ───────────────────────────────────────────────────────────────────
+function toBRL(v){if(v==null||isNaN(v))return"—";return new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v);}
+function mlCF(p){return p<29?5.5:p<55?6.5:p<109?8:p<199?10:0;}
+function shFee(p){return p<8?p*0.5:p<80?p*0.2+4:p<100?p*0.14+16:p<200?p*0.14+20:p*0.14+26;}
+function mkP(c,f,t){if(t>=0.999)return null;return(c+f)/(1-t);}
+function calcML(c,f,r,mg){var P=mkP(c,f,r+0.0299+mg);if(!P)return null;for(var i=0;i<15;i++){var Pn=(c+f+mlCF(P))/(1-r-0.0299-mg);if(Math.abs(Pn-P)<0.001){P=Pn;break;}P=Pn;}return P>0?P:null;}
+function calcSh(c,f,mg){var P=(c+f)*2.5;for(var i=0;i<80;i++){var Pn=c+f+shFee(P)+P*mg;if(Math.abs(Pn-P)<0.001){P=Pn;break;}P=Pn;}return P>0?P:null;}
+function feeFor(mp,pv,tx){if(mp.t==="ml")return pv*tx[mp.r]+mlCF(pv)+pv*0.0299;if(mp.t==="sh")return shFee(pv);return pv*tx[mp.r];}
+function calcAll(c,f,mg,tx){
+  var list=[
+    {key:"mlc",P:calcML(c,f,tx[0],mg)},{key:"mlp",P:calcML(c,f,tx[1],mg)},
+    {key:"sh", P:calcSh(c,f,mg)},
+    {key:"amz",P:mkP(c,f,tx[2]+mg)},{key:"mag",P:mkP(c,f,tx[3]+mg)},{key:"ame",P:mkP(c,f,tx[4]+mg)},
+  ];
+  return list.filter(function(m){return m.P&&m.P>0;}).sort(function(a,b){return a.P-b.P;});
+}
+
+// ── DB ─────────────────────────────────────────────────────────────────────
+var DB={
+  load:function(){try{return JSON.parse(localStorage.getItem("dw_users")||"[]");}catch(e){return[];}},
+  save:function(u){localStorage.setItem("dw_users",JSON.stringify(u));},
+  find:function(email){return this.load().find(function(u){return u.email===email.toLowerCase();});},
+  create:function(name,email,pass){var u={id:Date.now()+"",name:name,email:email.toLowerCase(),password:pass,role:"user",plan:"free",trialEnd:new Date(Date.now()+3*864e5).toISOString(),createdAt:new Date().toISOString()};var us=this.load();us.push(u);this.save(us);return u;},
+  update:function(id,data){var us=this.load().map(function(u){return u.id===id?Object.assign({},u,data):u;});this.save(us);return us.find(function(u){return u.id===id;});}
+};
+var hist=[];try{hist=JSON.parse(localStorage.getItem("dw_history")||"[]");}catch(e){}
+function saveHist(e){hist=[e].concat(hist).slice(0,50);localStorage.setItem("dw_history",JSON.stringify(hist));}
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+var state={
+  view:"loading",screen:"home",
+  user:null,tab:"login",
+  nome:"",custo:"",cat:"eletronicos",margem:30,freteOn:false,freteV:"18",
+  results:null,pesquisa:null,estrategia:"padrao",
+  msgs:[{id:"0",role:"assistant",text:"Olá! 👋 Sou o assistente do DROPWISE AI.\n\nPosso ajudar com estratégias de precificação, taxas e dicas de dropshipping.\n\nO que quer saber?"}],
+  chatIn:"",ldCalc:false,ldImg:false,ldAuth:false,ldChat:false,
+  imgMsg:"",calcErr:"",authErr:"",
+  obIdx:0,openFaq:null,adminSearch:"",
+};
+
+function showToast(msg){var t=document.getElementById("toast");t.textContent=msg;t.style.display="block";setTimeout(function(){t.style.display="none";},3000);}
+
+function setState(data){Object.assign(state,data);render();}
+
+// ── API CALL ───────────────────────────────────────────────────────────────
+var API_KEY = ""; // opcional — deixe vazio para usar estimativas inteligentes
+
+function apiCall(body,cb){
+  if(!API_KEY){cb({_nokey:true});return;}
+  fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","x-api-key":API_KEY,"anthropic-version":"2023-06-01"},
+    body:JSON.stringify(body)
+  }).then(function(r){return r.json();}).then(cb).catch(function(e){cb({error:e.message});});
+}
+
+// Estimativa inteligente de mercado baseada no custo e categoria
+function estimarMercado(nome,cat,custoNum){
+  var mult={eletronicos:2.8,informatica:2.5,eletrodomesticos:2.2,moda:3.5,beleza:3.2,casa:2.8,brinquedos:3.0,esportes:2.7,ferramentas:2.4,pets:3.0,games:2.3,livros:2.5,alimentos:2.2};
+  var m=mult[cat]||2.5;
+  var medio=Math.round(custoNum*m);
+  var concorrencias=["Baixa","Média","Alta","Muito Alta"];
+  var viabilidades=["Excelente","Boa","Regular","Ruim"];
+  var conc=custoNum<30?"Alta":custoNum<80?"Média":"Baixa";
+  var viab=custoNum<20?"Regular":custoNum<50?"Boa":"Excelente";
+  var mps=["Mercado Livre","Shopee","Amazon","Magalu","Americanas"];
+  var mp=cat==="eletronicos"||cat==="games"?"Mercado Livre":cat==="moda"||cat==="beleza"?"Shopee":"Mercado Livre";
+  var dicas={
+    eletronicos:"Inclua número de homologação ANATEL e destaque a garantia. Considere criar kits para aumentar o ticket médio.",
+    moda:"Invista em fotos de qualidade com modelos. Tamanhos bem especificados reduzem devoluções.",
+    beleza:"Destaque ingredientes e benefícios. Avaliações positivas são cruciais nessa categoria.",
+    informatica:"Especificações técnicas detalhadas aumentam a conversão. Bundle com acessórios funciona bem.",
+    eletrodomesticos:"Garantia e assistência técnica são diferenciais importantes. Destaque a voltagem.",
+    casa:"Fotos em ambiente decorado aumentam conversão. Dimensões precisas evitam devoluções.",
+    brinquedos:"Certificação INMETRO é obrigatória. Faixa etária bem definida reduz problemas.",
+    esportes:"Destaque compatibilidade e materiais. Vídeos de uso aumentam conversão.",
+    ferramentas:"Especificações técnicas e compatibilidade são essenciais. Ofereça garantia.",
+    pets:"Peso e porte do animal bem especificados. Fotos reais do produto em uso ajudam.",
+    games:"Versão do jogo e compatibilidade são cruciais. Lacrado tem valor extra.",
+    livros:"Edição, ano e estado de conservação bem descritos. Frete é decisivo nessa categoria.",
+    alimentos:"Validade, ingredientes e certificações são obrigatórios. Foto do rótulo ajuda.",
+  };
+  return{
+    preco_medio:medio,faixa_min:Math.round(medio*0.75),faixa_max:Math.round(medio*1.35),
+    melhor_mp:mp,motivo:"Maior volume de buscas e melhor reputação para esta categoria no Brasil.",
+    concorrencia:conc,dica:dicas[cat]||"Invista em fotos profissionais e descrição detalhada para se destacar.",
+    viabilidade:viab,_estimado:true
+  };
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function render(){
+  var app=document.getElementById("app");
+  if(!app)return;
+  if(state.view==="loading"){app.innerHTML=renderLoading();return;}
+  if(state.view==="onboarding"){app.innerHTML=renderOnboarding();return;}
+  if(state.view==="auth"){app.innerHTML=renderAuth();return;}
+  if(state.view==="admin"){app.innerHTML=renderAdmin();return;}
+  if(state.view==="plans"){app.innerHTML=renderPlans();return;}
+  if(state.view==="app"){
+    if(state.screen==="home")   {app.innerHTML=renderHome();return;}
+    if(state.screen==="config") {app.innerHTML=renderConfig();return;}
+    if(state.screen==="results"){app.innerHTML=renderResults();return;}
+    if(state.screen==="chat")   {app.innerHTML=renderChat();bindChat();return;}
+    if(state.screen==="help")   {app.innerHTML=renderHelp();return;}
+    if(state.screen==="history"){app.innerHTML=renderHistory();return;}
+  }
+}
+
+// ── LOADING ────────────────────────────────────────────────────────────────
+function renderLoading(){
+  return'<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px" class="up">'+
+  '<div style="width:88px;height:88px;border-radius:26px;background:linear-gradient(135deg,#9D5CFF,#7C3AED,#06B6D4);display:flex;align-items:center;justify-content:center;font-size:46px;margin:0 auto 20px;box-shadow:0 0 50px rgba(124,58,237,0.6)">⚡</div>'+
+  '<div style="font-size:30px;font-weight:900;letter-spacing:2px;margin-bottom:6px">DROPWISE AI</div>'+
+  '<div style="font-size:13px;color:#A78BFA;margin-bottom:32px">Precificação inteligente para vendedores online</div>'+
+  '<div style="font-size:11px;color:#3E3D52">Powered by Claude AI</div></div>';
+}
+
+// ── ONBOARDING ─────────────────────────────────────────────────────────────
+var OB=[
+  {tag:"BEM-VINDO",ico:"⚡",t:"Precificação inteligente com IA",d:"Calcule o preço ideal em 6 marketplaces em menos de 30 segundos.",items:null},
+  {tag:"PASSO 1",ico:"📸",t:"Foto do produto ou print",d:"Nossa IA identifica nome, categoria e preço automaticamente.",items:["📦 Produto identificado","🏷️ Categoria: Eletrônicos","💵 Preço: R$ 89,90"]},
+  {tag:"PASSO 2",ico:"🎯",t:"Escolha sua estratégia",d:"Vender rápido, ser competitivo ou maximizar lucro?",items:["⚡ Vender Rápido — abaixo do mercado","🎯 Competitivo — na média","👑 Premium — acima do mercado"]},
+  {tag:"PASSO 3",ico:"💰",t:"Preço ideal por marketplace",d:"Todos os 6 marketplaces calculados com taxas reais.",items:["🛒 ML Clássico: R$ 128,40","🧡 Shopee: R$ 124,80","📦 Amazon: R$ 110,53"]},
+  {tag:"PRONTO",ico:"🚀",t:"Você está pronto!",d:"3 dias de acesso gratuito. Sem cartão.",items:["✅ 3 dias grátis","✅ 6 marketplaces","✅ 4 estratégias de preço","✅ IA pesquisa o mercado"]},
+];
+function renderOnboarding(){
+  var s=OB[state.obIdx];
+  var prog="";
+  for(var i=0;i<OB.length;i++)prog+='<div style="flex:1;height:3px;border-radius:99px;background:'+(i<=state.obIdx?"#A78BFA":"rgba(255,255,255,0.1)")+';transition:all 0.4s"></div>';
+  var items="";
+  if(s.items)s.items.forEach(function(d){items+='<div style="font-size:13px;font-weight:600;color:#F0EFF8">'+d+"</div>";});
+  return'<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">'+
+  '<div style="max-width:440px;width:100%">'+
+  '<div style="display:flex;gap:6px;margin-bottom:28px">'+prog+'</div>'+
+  '<div class="up" style="text-align:center;margin-bottom:28px">'+
+  '<div style="display:inline-flex;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);border-radius:99px;padding:4px 12px;font-size:10px;font-weight:700;color:#A78BFA;margin-bottom:20px">'+s.tag+'</div>'+
+  '<div style="width:96px;height:96px;border-radius:28px;background:linear-gradient(135deg,#9D5CFF,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:50px;margin:0 auto 20px;box-shadow:0 0 40px rgba(124,58,237,0.5)">'+s.ico+'</div>'+
+  '<h2 style="font-size:24px;font-weight:900;line-height:1.3;margin-bottom:12px">'+s.t+'</h2>'+
+  '<p style="color:#8B8A9E;line-height:1.7;font-size:14px;margin-bottom:20px">'+s.d+'</p>'+
+  (s.items?'<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px;text-align:left;display:flex;flex-direction:column;gap:8px">'+items+'</div>':"")+'</div>'+
+  '<button class="btn" onclick="obNext()">'+( state.obIdx<OB.length-1?"Próximo →":"🚀 Começar agora")+'</button>'+
+  (state.obIdx<OB.length-1?'<button style="width:100%;background:none;border:none;color:#3E3D52;margin-top:14px;cursor:pointer;font-size:13px" onclick="skipOb()">Pular tutorial</button>':"")+'</div></div>';
+}
+function obNext(){if(state.obIdx<OB.length-1)setState({obIdx:state.obIdx+1});else skipOb();}
+function skipOb(){localStorage.setItem("dw_onboarded","1");setState({view:"auth"});}
+
+// ── AUTH ───────────────────────────────────────────────────────────────────
+function renderAuth(){
+  return'<div class="screen up" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh">'+
+  '<div style="max-width:420px;width:100%">'+
+  '<div style="text-align:center;margin-bottom:28px">'+
+  '<div style="width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,#9D5CFF,#7C3AED,#06B6D4);display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 14px;box-shadow:0 0 40px rgba(124,58,237,0.6)">⚡</div>'+
+  '<div style="font-size:24px;font-weight:900;letter-spacing:2px">DROPWISE AI</div>'+
+  '<div style="font-size:11px;color:#A78BFA;margin-top:4px">Precificação inteligente para vendedores online</div></div>'+
+  '<div style="display:flex;background:rgba(255,255,255,0.04);border-radius:12px;padding:4px;margin-bottom:18px;gap:4px">'+
+  '<button style="flex:1;padding:10px;border-radius:9px;border:none;cursor:pointer;font-weight:700;font-size:13px;background:'+(state.tab==="login"?"rgba(120,60,255,0.5)":"transparent")+';color:'+(state.tab==="login"?"#E2D9FF":"#555")+'" onclick="setState({tab:\'login\',authErr:\'\'})">Entrar</button>'+
+  '<button style="flex:1;padding:10px;border-radius:9px;border:none;cursor:pointer;font-weight:700;font-size:13px;background:'+(state.tab==="register"?"rgba(120,60,255,0.5)":"transparent")+';color:'+(state.tab==="register"?"#E2D9FF":"#555")+'" onclick="setState({tab:\'register\',authErr:\'\'})">Criar conta</button></div>'+
+  '<div class="card">'+
+  (state.tab==="register"?'<div class="label">Seu nome</div><input class="input" style="margin-bottom:14px" id="f-name" placeholder="Ex: João Silva" value="'+state.authName+"\" oninput=\"state.authName=this.value\">":"")+
+  '<div class="label">E-mail</div><input class="input" style="margin-bottom:14px" id="f-email" type="email" placeholder="seu@email.com" value="'+state.authEmail+"\" oninput=\"state.authEmail=this.value\">"+
+  '<div class="label">Senha</div><input class="input" style="margin-bottom:14px" id="f-pass" type="password" placeholder="'+(state.tab==="register"?"Mínimo 8 caracteres":"Sua senha")+'" value="'+state.authPass+"\" oninput=\"state.authPass=this.value\">"+
+  (state.authErr?'<div style="background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);border-radius:10px;padding:10px 14px;color:#FCA5A5;font-size:13px;margin-bottom:12px">⚠️ '+state.authErr+'</div>':"")+
+  '<button class="btn" onclick="doAuth()" '+(state.ldAuth?"disabled":"")+">"+( state.ldAuth?"<span class='spinner spin' style='display:inline-block'></span> Aguarde...":(state.tab==="login"?"Entrar →":"🚀 Criar conta grátis"))+"</button></div>"+
+  (state.tab==="register"?'<p style="text-align:center;font-size:12px;color:#06B6D4;margin-top:8px">✨ 3 dias de trial grátis · Sem cartão</p>':"")+'<p style="text-align:center;font-size:11px;color:#3E3D52;margin-top:12px">Admin: admin@dropwise.ai / admin123</p></div></div>';
+}
+
+// inicializa campos ao trocar de ab# dropwise
